@@ -1,72 +1,71 @@
 package cliente.tcp;
+
 import datos.EntradaSalida;
 import datos.Mensaje;
 
-import java.net.*;
-// importar la libreria java.net
 import java.io.*;
-// importar la libreria java.io
- 
-// declararamos la clase clientetcp
-public class ClienteEnviaTCP extends Thread{
-    // declaramos un objeto socket para realizar la comunicación
+import java.net.*;
+
+public class ClienteEnviaTCP extends Thread {
     protected Socket socket;
     protected final int PUERTO_SERVER;
     protected final String SERVER;
-    
-    public ClienteEnviaTCP(String servidor, int puertoS)throws Exception{
-        PUERTO_SERVER=puertoS;
-        SERVER=servidor;
-        
-        // Instanciamos un socket con la dirección del destino y el
-        // puerto que vamos a utilizar para la comunicación
-        socket = new Socket(SERVER,PUERTO_SERVER);
+
+    public ClienteEnviaTCP(String servidor, int puertoS) throws Exception {
+        PUERTO_SERVER = puertoS;
+        SERVER = servidor;
+        socket = new Socket(SERVER, PUERTO_SERVER);
     }
-    
-    public void run () {
-        // Declaramos un bloque try y catch para controlar la ejecución del subprograma
+
+    public void run() {
         try {
-            Mensaje mensajeObj=new Mensaje();
-            EntradaSalida.mostrarMensaje("Cliente conectado con servidor "+
-                    socket.getInetAddress()+ ":"+socket.getPort()+"...\n");
+            Mensaje mensajeObj = new Mensaje();
+            EntradaSalida.mostrarMensaje("Cliente conectado con servidor " +
+                    socket.getInetAddress() + ":" + socket.getPort() + "...\n");
             EntradaSalida.mostrarMensaje("Cliente listo para mandar...\n");
+            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+
             do {
-                enviaMensaje(mensajeObj);
-                // mientras el mensaje no encuentre la cadena fin, seguiremos ejecutando
-                // el bucle do-while
+                String mensaje = in.readLine();
+                mensajeObj.setMensaje(mensaje);
+
+                if (mensaje.startsWith("file:")) {
+                    String filePath = mensaje.substring(5).trim();
+                    sendFile(filePath, out);
+                } else {
+                    out.writeUTF(mensaje);
+                }
+
+                EntradaSalida.mostrarMensaje("Mensaje \"" + mensajeObj.getMensaje() +
+                        "\" enviado a " + mensajeObj.getAddressServidor() + ":" + mensajeObj.getPuertoServidor() + "\n");
             } while (!mensajeObj.getMensaje().startsWith("fin"));
-        }
-        // utilizamos el catch para capturar los errores que puedan surgir
-        catch (Exception e) {
-            // si existen errores los mostrará en la consola y después saldrá del
-            // programa
+
+        } catch (Exception e) {
             System.err.println(e.getMessage());
             System.exit(1);
         }
     }
 
-    private void enviaMensaje(Mensaje mensajeObj) throws Exception {
-        // Creamos una instancia BuffererReader en la
-        // que guardamos los datos introducido por el usuario
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+    private void sendFile(String filePath, DataOutputStream out) throws Exception {
+        File file = new File(filePath);
+        if (!file.exists() || !file.isFile()) {
+            throw new FileNotFoundException("El archivo no existe o no es un archivo válido.");
+        }
 
-        // Declaramos e instanciamos el objeto DataOutputStream
-        // que nos valdrá para enviar datos al servidor destino
-        DataOutputStream out =new DataOutputStream(socket.getOutputStream());
+        FileInputStream fileIn = new FileInputStream(file);
+        BufferedInputStream bufIn = new BufferedInputStream(fileIn);
 
-        // declaramos una variable de tipo string
-        String mensaje="";
+        out.writeUTF("file:" + file.getName());
+        out.writeLong(file.length());
 
-        // los datos que hemos obtenido despues de ejecutar la función
-        // "readLine" en la instancia "in"
-        mensaje = in.readLine();
-        // enviamos el mensaje codificado en UTF
-        out.writeUTF(mensaje);
-        mensajeObj.setMensaje(mensaje);
-        mensajeObj.setAddressServidor(socket.getInetAddress());
-        mensajeObj.setPuertoServidor(socket.getPort());
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = bufIn.read(buffer)) != -1) {
+            out.write(buffer, 0, bytesRead);
+        }
 
-        EntradaSalida.mostrarMensaje("Mensaje \""+ mensajeObj.getMensaje() +
-                "\" enviado a "+mensajeObj.getAddressServidor() + ":"+mensajeObj.getPuertoServidor()+"\n");
+        bufIn.close();
+        EntradaSalida.mostrarMensaje("Archivo \"" + file.getName() + "\" enviado.\n");
     }
 }
