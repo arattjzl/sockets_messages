@@ -32,7 +32,7 @@ public class ServidorEscuchaTCP extends Thread {
                 if (mensaje.startsWith("file:")) {
                     String fileName = mensaje.substring(5).trim();
                     long fileSize = in.readLong();
-                    receiveFile(fileName, fileSize, in);
+                    recibeArchivo(fileName, fileSize, in);
                 } else {
                     mensajeObj.setAddressCliente(socket_cli.getInetAddress());
                     mensajeObj.setPuertoCliente(socket_cli.getPort());
@@ -47,7 +47,7 @@ public class ServidorEscuchaTCP extends Thread {
         }
     }
 
-    private void receiveFile(String fileName, long fileSize, DataInputStream in) throws Exception {
+    private void recibeArchivo(String fileName, long fileSize, DataInputStream in) throws Exception {
         FileOutputStream fileOut = new FileOutputStream("recibido_" + fileName);
         BufferedOutputStream bufOut = new BufferedOutputStream(fileOut);
     

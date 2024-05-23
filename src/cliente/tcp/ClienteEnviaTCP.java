@@ -32,7 +32,7 @@ public class ClienteEnviaTCP extends Thread {
 
                 if (mensaje.startsWith("file:")) {
                     String filePath = mensaje.substring(5).trim();
-                    sendFile(filePath, out);
+                    enviaArchivo(filePath, out);
                 } else {
                     out.writeUTF(mensaje);
                 }
@@ -47,7 +47,7 @@ public class ClienteEnviaTCP extends Thread {
         }
     }
 
-    private void sendFile(String filePath, DataOutputStream out) throws Exception {
+    private void enviaArchivo(String filePath, DataOutputStream out) throws Exception {
         File file = new File(filePath);
         if (!file.exists() || !file.isFile()) {
             throw new FileNotFoundException("El archivo no existe o no es un archivo válido.");
@@ -61,11 +61,39 @@ public class ClienteEnviaTCP extends Thread {
 
         byte[] buffer = new byte[4096];
         int bytesRead;
+
+        int totalBytesRead = 0;
+        double tiempoTranscurrido = 0;
+        double tiempoInicio = System.currentTimeMillis();
+        double tasaTransferencia = 0;
         while ((bytesRead = bufIn.read(buffer)) != -1) {
+            tiempoTranscurrido = (System.currentTimeMillis() - tiempoInicio) / 1000.0;
+            tasaTransferencia = totalBytesRead / tiempoTranscurrido;
+            String tiempoTranscurridoStr = tiempo(tiempoTranscurrido);
+            String tasaTransferenciaStr = tasaTransferencia(tasaTransferencia);
+            EntradaSalida.mostrarMensaje("Tasa de transferencia" + tasaTransferenciaStr + "s\n"
+                                        + "Tiempo transcurrido" +  tiempoTranscurridoStr + "\n"
+            );
             out.write(buffer, 0, bytesRead);
         }
 
         bufIn.close();
         EntradaSalida.mostrarMensaje("Archivo \"" + file.getName() + "\" enviado.\n");
+    }
+
+    private String tiempo(double tiempo) {
+        int minutos = (int) (tiempo / 60);
+        int segundos = (int) (tiempo % 60);
+        return String.format("%02d:%02d", minutos, segundos);
+    }
+
+    private String tasaTransferencia(double tasa) {
+        String[] unidades = {"B/s", "KB/s", "MB/s", "GB/s", "TB/s"};
+        int index = 0;
+        while (tasa >= 1024 && index < unidades.length - 1) {
+            tasa /= 1024;
+            index++;
+        }
+        return String.format("%.2f %s", tasa, unidades[index]);
     }
 }
