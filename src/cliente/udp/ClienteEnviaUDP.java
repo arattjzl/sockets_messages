@@ -3,8 +3,11 @@ package cliente.udp;
 import datos.EntradaSalida;
 import datos.Mensaje;
 
-import java.net.*;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
  
 //declaramos la clase udp envia
 public class ClienteEnviaUDP extends Thread{
@@ -31,6 +34,7 @@ public class ClienteEnviaUDP extends Thread{
             System.err.println("Exception "+e.getMessage());
             System.exit(1);
         }
+
     }
 
     private void enviaMensaje(Mensaje mensajeObj) throws Exception{

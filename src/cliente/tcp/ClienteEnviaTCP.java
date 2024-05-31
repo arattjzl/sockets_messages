@@ -25,21 +25,30 @@ public class ClienteEnviaTCP extends Thread {
             EntradaSalida.mostrarMensaje("Cliente listo para mandar...\n");
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+            boolean up = true;
+            while (up) {
+                EntradaSalida.mostrarMensaje("Ingrese una opción: \n1. Envio de mensaje\n2. Envio de archivo\n3. Salir\n");
+                String opcion = EntradaSalida.ingresarTexto();
+                switch (opcion) {
+                    case "1":
+                        String mensaje = in.readLine();
+                        mensajeObj.setMensaje(mensaje);
 
-            do {
-                String mensaje = in.readLine();
-                mensajeObj.setMensaje(mensaje);
+                        out.writeUTF(mensaje);
 
-                if (mensaje.startsWith("file:")) {
-                    String filePath = mensaje.substring(5).trim();
-                    enviaArchivo(filePath, out);
-                } else {
-                    out.writeUTF(mensaje);
+                        EntradaSalida.mostrarMensaje("Mensaje \"" + mensajeObj.getMensaje() +
+                                "\" enviado a " + mensajeObj.getAddressServidor() + ":" + mensajeObj.getPuertoServidor() + "\n");
+                        break;
+                    case "2":
+                        String archivo = in.readLine();
+                        mensajeObj.setMensaje(archivo);
+
+                        enviaArchivo(archivo, out);
+                        break;
+                    case "3": up = false;
+                    break;
                 }
-
-                EntradaSalida.mostrarMensaje("Mensaje \"" + mensajeObj.getMensaje() +
-                        "\" enviado a " + mensajeObj.getAddressServidor() + ":" + mensajeObj.getPuertoServidor() + "\n");
-            } while (!mensajeObj.getMensaje().startsWith("fin"));
+            }
 
         } catch (Exception e) {
             System.err.println(e.getMessage());
