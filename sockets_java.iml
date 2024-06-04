@@ -10,10 +10,16 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$USER_HOME$/Downloads/javacv-1.5.10.jar!/" />
+          <root url="jar://$USER_HOME$/Downloads/opencv-4.9.0-windows/opencv/build/java/opencv-490.jar!/" />
         </CLASSES>
         <JAVADOC />
-        <SOURCES />
+        <NATIVE>
+          <root url="file://$USER_HOME$/Downloads/opencv-4.9.0-windows/opencv/build/java/x64" />
+        </NATIVE>
+        <SOURCES>
+          <root url="jar://$USER_HOME$/Downloads/opencv-4.9.0-windows/opencv/build/java/opencv-490.jar!/" />
+          <root url="jar://$USER_HOME$/Downloads/opencv-4.9.0-windows/opencv/build/java/opencv-490.jar!/" />
+        </SOURCES>
       </library>
     </orderEntry>
   </component>
