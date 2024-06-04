@@ -64,7 +64,7 @@ public class ClienteEnviaUDP extends Thread{
                 "\" enviado a "+mensajeObj.getAddressServidor() + ":"+mensajeObj.getPuertoServidor()+"\n");
     }
 
-    private void enviaVideollamada() throws Exception{
+    private void enviaVideollamada() throws Exception {
         VideoCapture capture = new VideoCapture(0);
 
         if (!capture.isOpened()) {
@@ -74,6 +74,7 @@ public class ClienteEnviaUDP extends Thread{
 
         InetAddress addressServer = InetAddress.getByName(SERVER);
         Mat frame = new Mat();
+        final int MAX_UDP_SIZE = 1500; // 1500 bytes to avoid fragmentation
 
         while (true) {
             capture.read(frame);
@@ -83,11 +84,23 @@ public class ClienteEnviaUDP extends Thread{
                 byte[] imageBytes = new byte[(int) (frame.total() * frame.elemSize())];
                 frame.get(0, 0, imageBytes);
 
-                DatagramPacket packet = new DatagramPacket(imageBytes, imageBytes.length, addressServer, PUERTO_SERVER);
-                socket.send(packet);
+                int totalBytes = imageBytes.length;
+                int numPackets = (int) Math.ceil(totalBytes / (double) MAX_UDP_SIZE);
+
+                for (int i = 0; i < numPackets; i++) {
+                    int start = i * MAX_UDP_SIZE;
+                    int length = Math.min(totalBytes - start, MAX_UDP_SIZE);
+
+                    byte[] packetBytes = new byte[length];
+                    System.arraycopy(imageBytes, start, packetBytes, 0, length);
+
+                    DatagramPacket packet = new DatagramPacket(packetBytes, length, addressServer, PUERTO_SERVER);
+                    socket.send(packet);
+                }
 
                 Thread.sleep(100); // 10 FPS
             }
         }
     }
+
 }
