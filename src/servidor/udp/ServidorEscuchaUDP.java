@@ -16,103 +16,83 @@ import org.opencv.imgcodecs.Imgcodecs;
 
 import javax.swing.*;
 
-public class ServidorEscuchaUDP extends Thread{
+public class ServidorEscuchaUDP extends Thread {
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
     protected DatagramSocket socket;
     protected final int PUERTO_SERVER;
     protected final JFrame frame;
+    protected JLabel label;
 
-    public ServidorEscuchaUDP(int puertoS) throws Exception{
-
-        //Creamos el socket
-        PUERTO_SERVER=puertoS;
+    public ServidorEscuchaUDP(int puertoS) throws Exception {
+        PUERTO_SERVER = puertoS;
         socket = new DatagramSocket(puertoS);
         frame = new JFrame("Servidor Video");
+        label = new JLabel();
     }
 
     public void run() {
         try {
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(640, 480);
+            frame.add(label);
+            frame.setVisible(true);
+
             EntradaSalida.mostrarMensaje("Servidor esperando videollamada.");
             recibeVideollamada();
-        }
-        catch (Exception e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
+        } catch (Exception e) {
+            System.err.println("Error en el servidor: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            socket.close();
         }
     }
 
-    private void procesaMensaje(Mensaje mensaje) throws Exception{
-        String mensajeComp ="";
+    private void procesaMensaje(Mensaje mensaje) throws Exception {
+        String mensajeComp = "";
 
         if (mensaje.getMensaje().startsWith("fin")) {
-            mensajeComp="Transmisión con el servidor finalizada...";
+            mensajeComp = "Transmisión con el servidor finalizada...";
             mensaje.setMensaje(mensajeComp);
             enviaMensaje(mensaje);
-        }
-        else if (mensaje.getMensaje().startsWith("hola")) {
-            mensajeComp="¿Cómo estas?";
-
-            //formateamos el mensaje de salida
+        } else if (mensaje.getMensaje().startsWith("hola")) {
+            mensajeComp = "¿Cómo estas?";
             mensaje.setMensaje(mensajeComp);
             enviaMensaje(mensaje);
-        }
-        else if (mensaje.getMensaje().startsWith("bien y tú")) {
-            mensajeComp="También estoy bien, gracias";
-
-            //formateamos el mensaje de salida
+        } else if (mensaje.getMensaje().startsWith("bien y tú")) {
+            mensajeComp = "También estoy bien, gracias";
             mensaje.setMensaje(mensajeComp);
             enviaMensaje(mensaje);
-        }
-        else{
-            mensajeComp="...";
+        } else {
+            mensajeComp = "...";
         }
     }
 
-    private Mensaje recibeMensaje() throws Exception{
-        Mensaje mensajeObj=new Mensaje();
-        String mensaje="";
-        byte[] mensaje_bytes;
-        byte[] mensaje2_bytes;
-        final int MAX_BUFFER=256;
-        DatagramPacket paquete;
-
-        // Recibimos el paquete
-        mensaje_bytes=new byte[MAX_BUFFER];
-        paquete = new DatagramPacket(mensaje_bytes,MAX_BUFFER);
+    private Mensaje recibeMensaje() throws Exception {
+        Mensaje mensajeObj = new Mensaje();
+        byte[] mensaje_bytes = new byte[256];
+        DatagramPacket paquete = new DatagramPacket(mensaje_bytes, mensaje_bytes.length);
         socket.receive(paquete);
 
-        // Lo formateamos
-        //mensaje_bytes=new byte[paquete.getLength()];
-        mensaje_bytes=paquete.getData();
-        mensaje = new String(mensaje_bytes,0,paquete.getLength()).trim();
+        String mensaje = new String(paquete.getData(), 0, paquete.getLength()).trim();
         mensajeObj.setMensaje(mensaje);
-
-        //Obtenemos IP Y PUERTO
         mensajeObj.setPuertoCliente(paquete.getPort());
         mensajeObj.setAddressCliente(paquete.getAddress());
 
-        // Lo mostramos por pantalla
-        EntradaSalida.mostrarMensaje("Mensaje recibido \""+mensajeObj.getMensaje()+"\" del cliente "+
-                mensajeObj.getAddressCliente()+":"+mensajeObj.getPuertoCliente()+"\n");
+        EntradaSalida.mostrarMensaje("Mensaje recibido \"" + mensajeObj.getMensaje() + "\" del cliente " +
+                mensajeObj.getAddressCliente() + ":" + mensajeObj.getPuertoCliente() + "\n");
 
         return mensajeObj;
     }
-    private void enviaMensaje(Mensaje mensajeObj) throws Exception{
-        byte[] mensaje2_bytes = new byte[mensajeObj.getMensaje().length()];
-        DatagramPacket envPaquete;
 
-        mensaje2_bytes = mensajeObj.getMensaje().getBytes();
-
-        //Preparamos el paquete que queremos enviar
-        envPaquete = new DatagramPacket(mensaje2_bytes,mensaje2_bytes.length,mensajeObj.getAddressCliente(),mensajeObj.getPuertoCliente());
-
-        // realizamos el envio
+    private void enviaMensaje(Mensaje mensajeObj) throws Exception {
+        byte[] mensaje2_bytes = mensajeObj.getMensaje().getBytes();
+        DatagramPacket envPaquete = new DatagramPacket(mensaje2_bytes, mensaje2_bytes.length, mensajeObj.getAddressCliente(), mensajeObj.getPuertoCliente());
         socket.send(envPaquete);
 
-        EntradaSalida.mostrarMensaje("Mensaje saliente del servidor \""+
-                mensajeObj.getMensaje()+"\" al cliente " + mensajeObj.getAddressCliente() + ":"+mensajeObj.getPuertoCliente()+"\n");
+        EntradaSalida.mostrarMensaje("Mensaje saliente del servidor \"" + mensajeObj.getMensaje() +
+                "\" al cliente " + mensajeObj.getAddressCliente() + ":" + mensajeObj.getPuertoCliente() + "\n");
     }
 
     private BufferedImage matToBufferedImage(Mat mat) {
@@ -135,25 +115,24 @@ public class ServidorEscuchaUDP extends Thread{
         frame.getContentPane().removeAll();
         frame.getContentPane().add(label);
         frame.revalidate();
+        frame.repaint();
     }
 
-    private void recibeVideollamada() throws Exception{
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(640, 480);
-        frame.setVisible(true);
 
+    private void recibeVideollamada() throws Exception {
         byte[] buffer = new byte[65535];
 
         while (true) {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
 
-            ByteArrayInputStream bais = new ByteArrayInputStream(packet.getData());
             Mat mat = Imgcodecs.imdecode(new MatOfByte(packet.getData()), Imgcodecs.IMREAD_UNCHANGED);
 
             if (mat != null && !mat.empty()) {
                 BufferedImage image = matToBufferedImage(mat);
                 displayImage(image);
+            } else {
+                System.err.println("Frame no valido");
             }
         }
     }
